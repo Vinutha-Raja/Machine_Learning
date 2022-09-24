@@ -407,5 +407,5 @@ if __name__ == "__main__":
         print(training_filename, "   ", heuristic_method_name, "       ", dt.max_depth, "     ", diff_df.shape[0]/training_data_size, "  ",      "||", test_filename, "    ", heuristic_method_name, "       ", dt.max_depth, "     ", diff_test_df.shape[0]/test_df_size)
         # print(test_filename, "    ", heuristic_method_name, "       ", dt.max_depth, "     ", diff_test_df.shape[0])
 
-    print("Avg prediction error for training dataset : ", training_error_count/max_depth)
-    print("Avg prediction error for testing dataset : ", testing_error_count / max_depth)
+    print("Avg prediction error for training dataset : ", training_error_count/(max_depth * training_data_size))
+    print("Avg prediction error for testing dataset : ", testing_error_count / (max_depth * test_df_size))
