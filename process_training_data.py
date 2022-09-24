@@ -68,7 +68,7 @@ class DecisionTree:
         for attr_val in attribute_values:
             attribute_df = df[df[attribute_name] == attr_val]
             entropy = self.calculate_entropy(attribute_df)  # send rows of specific attribute value
-            proportion = attribute_df.size / df.size
+            proportion = len(attribute_df.index) / len(df.index)
             expected_entropy += proportion * entropy
 
         return expected_entropy
@@ -95,7 +95,7 @@ class DecisionTree:
         for attr_val in attribute_values:
             attribute_df = df[df[attribute_name] == attr_val]
             majority_err = self.calculate_majority_error(attribute_df)  # send rows of specific attribute value
-            proportion = attribute_df.size / df.size
+            proportion = len(attribute_df.index) / len(df.index)
             expected_majority_err += proportion * majority_err
         return expected_majority_err
 
@@ -113,7 +113,7 @@ class DecisionTree:
         for attr_val in attribute_values:
             attribute_df = df[df[attribute_name] == attr_val]
             gini_index = self.calculate_gini_index(attribute_df)  # send rows of specific attribute value
-            proportion = attribute_df.size / df.size
+            proportion = len(attribute_df.index) / len(df.index)
             expected_gini_index += proportion * gini_index
 
         return expected_gini_index
@@ -276,14 +276,16 @@ class DecisionTree:
                     if df.iloc[i, self.attribute_index_map[attr]] == 'unknown':
                         df.iloc[i, self.attribute_index_map[attr]] = self.majority_map[attr]
 
-    def read_training_data(self, file_name, data_set, is_unknown=False):
+    def read_training_data(self, file_name, data_set, is_unknown="False"):
         df = pd.read_csv(file_name, header=None,
                          names=self.attribute_list)
+        # print(df.size)
         if data_set == "bank":
             # Convert numeric attributes to binary
             # [age, balance, day, duration, campaign, pdays, previous]
             self.convert_numeric_to_binary_attributes(df)
-            if is_unknown:
+            if is_unknown == "True":
+                # print(is_unknown)
                 if file_name == "bank/train.csv":
                     self.update_missing_attributes(df)
                 else:
@@ -350,7 +352,7 @@ if __name__ == "__main__":
     test_filename = sys.argv[3]
     heuristic_method_name = sys.argv[4]
     max_depth = int(sys.argv[5])
-    isunknown = bool(sys.argv[6])
+    isunknown = sys.argv[6]
     print("filename           heuristic_name max_depth error_count")
     training_error_count = 0
     testing_error_count = 0
@@ -388,6 +390,8 @@ if __name__ == "__main__":
         dt.constuct_decision_tree(data_df, heuristic_method_name)
         # predict values for training dataset
         training_data = data_df
+        training_data_size = len(training_data.index)
+        # print("training_data_size", training_data_size)
         predicted_training_df = dt.predict_labels(training_data.copy())
         diff_df = training_data.compare(predicted_training_df)
 
@@ -396,11 +400,12 @@ if __name__ == "__main__":
         test_df = test_data_df
         predicted_test_df = dt.predict_labels(test_df.copy())
         diff_test_df = test_df.compare(predicted_test_df)
+        test_df_size = len(test_df.index)
 
         training_error_count += diff_df.shape[0]
         testing_error_count += diff_test_df.shape[0]
-        print(training_filename, "   ", heuristic_method_name, "       ", dt.max_depth, "     ", diff_df.shape[0])
-        print(test_filename, "    ", heuristic_method_name, "       ", dt.max_depth, "     ", diff_test_df.shape[0])
+        print(training_filename, "   ", heuristic_method_name, "       ", dt.max_depth, "     ", diff_df.shape[0]/training_data_size, "  ",      "||", test_filename, "    ", heuristic_method_name, "       ", dt.max_depth, "     ", diff_test_df.shape[0]/test_df_size)
+        # print(test_filename, "    ", heuristic_method_name, "       ", dt.max_depth, "     ", diff_test_df.shape[0])
 
     print("Avg prediction error for training dataset : ", training_error_count/max_depth)
     print("Avg prediction error for testing dataset : ", testing_error_count / max_depth)
