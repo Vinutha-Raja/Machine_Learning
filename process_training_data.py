@@ -78,7 +78,7 @@ class DecisionTree:
         # get the total rows in df
         # get the count of each label value
         # for each label value calculate the entropy
-        df_size = df.size
+        df_size = len(df.index)
         entropy = 0
         for val in self.labels_val:
             if val in df['label'].unique():
@@ -100,7 +100,7 @@ class DecisionTree:
         return expected_majority_err
 
     def calculate_majority_error(self, df):
-        df_size = df.size
+        df_size = len(df.index)
         # get the count of label value which is majority
         majority_count = df['label'].value_counts().max()
         error_count = df_size - majority_count
@@ -119,7 +119,7 @@ class DecisionTree:
         return expected_gini_index
 
     def calculate_gini_index(self, df):
-        df_size = df.size
+        df_size = len(df.index)
         # gini_index = 0
         proportion_squared = 0
         for val in self.labels_val:
@@ -404,8 +404,9 @@ if __name__ == "__main__":
 
         training_error_count += diff_df.shape[0]
         testing_error_count += diff_test_df.shape[0]
-        print(training_filename, "   ", heuristic_method_name, "       ", dt.max_depth, "     ", diff_df.shape[0]/training_data_size, "  ",      "||", test_filename, "    ", heuristic_method_name, "       ", dt.max_depth, "     ", diff_test_df.shape[0]/test_df_size)
+        # print("{} {} {} {} )
+        print(training_filename, "   ", heuristic_method_name, "       ", dt.max_depth, "     ", diff_df.shape[0]/training_data_size, "  ",      "||", test_filename, "     ", diff_test_df.shape[0]/test_df_size)
         # print(test_filename, "    ", heuristic_method_name, "       ", dt.max_depth, "     ", diff_test_df.shape[0])
 
-    print("Avg prediction error for training dataset : ", training_error_count/(max_depth * training_data_size))
-    print("Avg prediction error for testing dataset : ", testing_error_count / (max_depth * test_df_size))
+    print("Avg prediction error for training dataset : {:.4f}".format(training_error_count/(max_depth * training_data_size)))
+    print("Avg prediction error for testing dataset : {:.4f}".format(testing_error_count / (max_depth * test_df_size)))
