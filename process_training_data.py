@@ -101,9 +101,12 @@ class DecisionTree:
 
     def calculate_majority_error(self, df):
         df_size = len(df.index)
+        if df_size == 0:
+            return 0
         # get the count of label value which is majority
         majority_count = df['label'].value_counts().max()
         error_count = df_size - majority_count
+
         majority_error = error_count/df_size
         return majority_error
 
