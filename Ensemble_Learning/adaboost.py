@@ -57,7 +57,7 @@ def adaboost_algorithm(T):
     data_df['prediction'] = [0] * len(data_df.index)
     # print(data_df)
     for i in range(1, T+1):
-        # print(data_df)
+        print(data_df)
         training_error_count = 0
         testing_error_count = 0
 
@@ -65,6 +65,8 @@ def adaboost_algorithm(T):
         # predict values for training dataset
         training_data = data_df
         training_data_size = len(training_data.index)
+        # print("training_Df :")
+        # print(training_data)
         predicted_training_df = dt.predict_labels(training_data.copy())
         # print("datadf: \n", data_df)
         # print("predicted: \n", predicted_training_df)
@@ -80,8 +82,9 @@ def adaboost_algorithm(T):
         test_data_df = dt.read_training_data('/Users/vinutha/Documents/FALL2022/ML/Machine_Learning/Ensemble_Learning/bank/test.csv', 'bank', "False")
         test_df = test_data_df
         test_df['prediction'] = [0] * len(test_df.index)
-        predicted_test_df = dt.predict_labels(test_df.copy())
-        # print("predicted_test_df: \n", predicted_test_df)
+        # print("test_data:")
+        # print(test_df)
+        predicted_test_df = dt.predict_labels(test_df.copy(), False)
 
         for j in range(len(predicted_test_df.index)):
             if predicted_test_df.iloc[j, 16] != predicted_test_df.iloc[j, 17]:

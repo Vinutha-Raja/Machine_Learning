@@ -3,6 +3,7 @@ from collections import deque
 import pandas as pd
 import math
 import sys
+import random
 
 
 class TreeNode:
@@ -177,6 +178,52 @@ class DecisionTree:
                 child.next_node = self.id3(new_df, new_attr_list, child.next_node, heuristic_name, depth=depth + 1)
         return node
 
+    def id3_random_forest(self, df, attribute_list, node=None, heuristic_name='entropy', depth=0, feature_size=2):
+        if not node:
+            node = TreeNode()
+
+        # if all the rows have same label. Return a node with that label
+        unique_labels = df['label'].unique()
+        if len(unique_labels) == 1:
+            node.value = unique_labels[0]
+            return node
+
+        if not attribute_list:
+            node.value = df['label'].value_counts().idxmax()
+            return node
+
+        self.depth = depth
+        # print("Depth: ", self.depth)
+        if self.depth == self.max_depth:
+            # max depth has been reached so assign the majority value
+            node.value = df['label'].value_counts().idxmax()
+            return node
+        # print("attribute_list", attribute_list)
+        # choose few attributes randomly before splitting
+        attribute_list = random.sample(attribute_list, feature_size)
+        best_split_attribute = self.get_best_split_attribute(df, attribute_list, heuristic_name)
+        # print("best_split_attribute: ", best_split_attribute)
+        node.value = best_split_attribute
+        node.child_nodes = []
+
+        attribute_values = self.attribute_map.get(best_split_attribute)
+        # print(attribute_values)
+        for attribute in attribute_values:
+            # print(attribute)
+            child = TreeNode()
+            child.value = attribute
+            node.child_nodes.append(child)
+            new_df = df[df[best_split_attribute] == attribute]
+            if new_df.size == 0:
+                child.next_node = df['label'].value_counts().idxmax()
+            else:
+                # if best_split_attribute in attribute_list:
+                new_attr_list = attribute_list.copy()
+                new_attr_list.remove(best_split_attribute)
+                # attribute_list.remove(best_split_attribute)
+                child.next_node = self.id3(new_df, new_attr_list, child.next_node, heuristic_name, depth=depth + 1)
+        return node
+
     def print_decision_tree(self):
         if not self.node:
             return
@@ -240,6 +287,11 @@ class DecisionTree:
         self.node = self.id3(df, attribute_list, self.node, heuristic)
         # self.level_order_print_tree(self.node)
         # self.print_decision_tree()
+
+    def constuct_random_decision_tree(self, df, heuristic, feature_size):
+        attribute_list = list(self.attribute_map.keys())
+        self.node = self.id3_random_forest(df, attribute_list, self.node, heuristic, feature_size)
+
 
     def convert_numeric_to_binary_attributes(self, df):
         attributes_to_convert = ["age", "balance", "day", "duration", "campaign", "pdays", "previous"]
@@ -325,14 +377,50 @@ class DecisionTree:
     def predict_labels(self, df):
         for i in range(len(df)):
             col_size = len(df.columns) - 1
-            row = [df.iloc[i, j] for j in range(col_size)]
+            row = [df.iloc[i, j] for j in range(col_size - 2)]
             # print("row size", len(row))
             # print(row)
             # row = [df.iloc[i, 0], df.iloc[i, 1], df.iloc[i, 2], df.iloc[i, 3], df.iloc[i, 4], df.iloc[i, 5]]
             # print(df.iloc[i, col_size])
-            df.iloc[i, col_size] = self.predict_label_for_row(row, self.node)
-            if df.iloc[i, col_size] not in self.labels_val:
-                print("after", df.iloc[i, col_size])
+            # colsize - count value
+            predicted_val = self.predict_label_for_row(row, self.node)
+            # print(predicted_val)
+            if predicted_val == df.iloc[i, col_size - 2]:
+                df.iloc[i, col_size] += 1
+            else:
+                df.iloc[i, col_size] -= 1
+            df.iloc[i, col_size - 1] = predicted_val
+            # if df.iloc[i, col_size - 1] not in self.labels_val:
+            #     print("after", df.iloc[i, col_size - 1])
+
+        # print("predicted df: ")
+        # print(df)
+        return df
+
+    def predict_labels_by_iter(self, df, first_iter_pred, last_iter_pred, first_iter=False, last_iter=False):
+        for i in range(len(df)):
+            col_size = len(df.columns) - 1
+            row = [df.iloc[i, j] for j in range(col_size - 3)]
+            predicted_val = self.predict_label_for_row(row, self.node)
+            # print(predicted_val)
+            if predicted_val == df.iloc[i, col_size - 3]:
+                if first_iter:
+                    first_iter_pred.append(1)
+                    df.iloc[i, col_size - 1] += 1
+                df.iloc[i, col_size] += 1
+                if last_iter:
+                    last_iter_pred.append(1)
+            else:
+                if first_iter:
+                    first_iter_pred.append(-1)
+                    df.iloc[i, col_size - 1] -= 1
+                df.iloc[i, col_size] -= 1
+                if last_iter:
+                    last_iter_pred.append(-1)
+            df.iloc[i, col_size - 2] = predicted_val
+
+            # if df.iloc[i, col_size - 1] not in self.labels_val:
+            #     print("after", df.iloc[i, col_size - 1])
 
         # print("predicted df: ")
         # print(df)
@@ -413,3 +501,6 @@ if __name__ == "__main__":
 
     print("Avg prediction error for training dataset : {:.4f}".format(training_error_count/(max_depth * training_data_size)))
     print("Avg prediction error for testing dataset : {:.4f}".format(testing_error_count / (max_depth * test_df_size)))
+
+
+dt = DecisionTree()

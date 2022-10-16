@@ -238,14 +238,19 @@ class DecisionTree:
     # for each row, traverse the tree and find the attribute name and find the corresponding value of the attribute in
     # in the row, and find the child node matching tha value and find the next_node.
     # Find the next attribute until you find the label for it.
-    def predict_labels(self, df):
+    def predict_labels(self, df, train=True):
         for i in range(len(df)):
             col_size = len(df.columns) - 1
-            row = [df.iloc[i, j] for j in range(col_size - 1)]
+            if train:
+                last_index = col_size - 2
+            else:
+                last_index = col_size - 1
+            row = [df.iloc[i, j] for j in range(last_index)]
             # print("row size", len(row))
             # print(row)
             # row = [df.iloc[i, 0], df.iloc[i, 1], df.iloc[i, 2], df.iloc[i, 3], df.iloc[i, 4], df.iloc[i, 5]]
             # print(df.iloc[i, col_size])
+            # print(row)
             df.iloc[i, col_size] = self.predict_label_for_row(row, self.node)
             if df.iloc[i, col_size] not in self.labels_val:
                 print("after", df.iloc[i, col_size])
