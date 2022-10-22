@@ -1,5 +1,5 @@
 from collections import deque
-
+import numpy as np
 import pandas as pd
 import math
 import sys
@@ -33,79 +33,73 @@ class DecisionTree:
                                     "previous", "poutcome"]
         self.majority_map = {}
 
-    def get_best_split_attribute(self, df, attribute_list, heuristic_name):
+    def get_best_split_attribute(self, df, attribute_list, heuristic_name, weights):
         # print(df)
         attributes = attribute_list
         gains_map = {}
         # print(heuristic_name)
         if heuristic_name == "entropy":
-            total_entropy = self.calculate_entropy(df)
+            total_entropy = self.calculate_entropy(df, weights)
             # print(total_entropy)
             for attr in attributes:
-                gains_map[attr] = self.calculate_information_gain(df, attr, total_entropy, heuristic_name)
-        elif heuristic_name == "majority_error":
-            total_majority_error = self.calculate_majority_error(df)
-            for attr in attributes:
-                gains_map[attr] = self.calculate_information_gain(df, attr, total_majority_error, heuristic_name)
-        elif heuristic_name == "gini_index":
-            total_gini_index = self.calculate_gini_index(df)
-            for attr in attributes:
-                gains_map[attr] = self.calculate_information_gain(df, attr, total_gini_index, heuristic_name)
+                gains_map[attr] = self.calculate_information_gain(df, attr, total_entropy, heuristic_name, weights)
+
         return max(gains_map, key=gains_map.get)
 
-    def calculate_information_gain(self, df, attribute_name, total_error, heuristic_name):
+    def calculate_information_gain(self, df, attribute_name, total_error, heuristic_name, weights):
         if heuristic_name == "entropy":
-            expected_error = self.calculate_expected_entropy(df, attribute_name)
-        elif heuristic_name == "majority_error":
-            expected_error = self.calculate_expected_majority_error(df, attribute_name)
-        elif heuristic_name == "gini_index":
-            expected_error = self.calculate_expected_gini_index(df, attribute_name)
+            expected_error = self.calculate_expected_entropy(df, attribute_name, weights)
+
         information_gain = total_error - expected_error
         return information_gain
 
-    def calculate_expected_entropy(self, df, attribute_name):
+    def calculate_expected_entropy(self, df, attribute_name, weights):
         attribute_values = self.attribute_map[attribute_name]
         expected_entropy = 0
+        total_weight = weights.sum()
+        column = np.array(df[attribute_name].tolist())
         for attr_val in attribute_values:
             attribute_df = df[df[attribute_name] == attr_val]
-            entropy = self.calculate_entropy(attribute_df)  # send rows of specific attribute value
-            proportion = attribute_df['weight'].sum() / df['weight'].sum()
+            w = weights[column == attr_val]
+            w_sum = w.sum()
+            entropy = self.calculate_entropy(attribute_df, w)  # send rows of specific attribute value
+            proportion = w_sum / total_weight
             expected_entropy += proportion * entropy
 
         return expected_entropy
 
     # df is filtered based on a particular value of an attribute
-    def calculate_entropy(self, df):
+    def calculate_entropy(self, df, weights):
         # get the total rows in df
         # get the count of each label value
         # for each label value calculate the entropy
         # df_size = len(df.index)
-        total_weight = df['weight'].sum()
+        total_weight = weights.sum()
         entropy = 0
+        column = np.array(df['label'].tolist())
         for val in self.labels_val:
             if val in df['label'].unique():
-                val_df = df[df['label'] == val]
-                val_count = val_df['weight'].sum()
+                # val_df = df[df['label'] == val]
+                w = weights[column == val]
+                val_count = np.sum(w)
                 proportion = val_count / total_weight
                 log_val = math.log(proportion, 2) * proportion * (-1)
                 entropy += log_val
 
         return entropy
 
-    def get_max_weighted_value(self, df):
-        val_yes = 0
-        val_no = 0
-        for i in range(len(df)):
-            if df.iloc[i, 16] == "yes":
-                val_yes += df.iloc[i, 17]
-            else:
-                val_no += df.iloc[i, 17]
+    def get_max_weighted_value(self, df, weights):
+        val_yes = weights[df['label'] == 'yes'].sum()
+        val_no = weights[df['label'] == 'no'].sum()
+        # print(val_yes, val_no, val_yes + val_no)
+        # print(val_no)
+        # print(val_yes + val_no)
         if val_yes >= val_no:
             return "yes"
         else:
             return "no"
 
-    def id3(self, df, attribute_list, node=None, heuristic_name='entropy', depth=0):
+    def id3(self, df, attribute_list, weights, node=None, heuristic_name='entropy', depth=0):
         if not node:
             # print("new_tree")
             node = TreeNode()
@@ -117,17 +111,18 @@ class DecisionTree:
             return node
 
         if not attribute_list:
-            node.value = self.get_max_weighted_value(df)
+            node.value = self.get_max_weighted_value(df, weights)
             return node
 
         self.depth = depth
         # print("Depth: ", self.depth)
         if self.depth == self.max_depth:
             # max depth has been reached so assign the majority value
-            node.value = self.get_max_weighted_value(df)
+            node.value = self.get_max_weighted_value(df, weights)
             return node
         # print("attribute_list", attribute_list)
-        best_split_attribute = self.get_best_split_attribute(df, attribute_list, heuristic_name)
+        # print(len(df.index), len(weights))
+        best_split_attribute = self.get_best_split_attribute(df, attribute_list, heuristic_name, weights)
         # print("best_split_attribute: ", best_split_attribute)
         node.value = best_split_attribute
         node.child_nodes = []
@@ -139,23 +134,31 @@ class DecisionTree:
             child = TreeNode()
             child.value = attribute
             node.child_nodes.append(child)
+            indices = df.index[df[best_split_attribute] == attribute].tolist()
+            # print("indices", indices)
+            # print("weights", weights)
+            new_weights = np.take(weights, indices)
+            # print("new_weights", new_weights)
             new_df = df[df[best_split_attribute] == attribute]
+            # print(len(new_df.index), len(new_weights))
+
             if new_df.size == 0:
-                child.next_node = self.get_max_weighted_value(df)
+                child.next_node = self.get_max_weighted_value(df, weights)
             else:
                 # if best_split_attribute in attribute_list:
                 new_attr_list = attribute_list.copy()
                 new_attr_list.remove(best_split_attribute)
                 # attribute_list.remove(best_split_attribute)
-                child.next_node = self.id3(new_df, new_attr_list, child.next_node, heuristic_name, depth=depth + 1)
+                child.next_node = self.id3(new_df, new_attr_list, new_weights, child.next_node, heuristic_name,
+                                           depth=depth + 1)
         return node
 
-    def constuct_decision_tree(self, df, heuristic):
+    def constuct_decision_tree(self, df, heuristic, weights):
         # print("here")
         # print(df)
         attribute_list = list(self.attribute_map.keys())
         # print(attribute_list)
-        self.node = self.id3(df, attribute_list, None, heuristic)
+        self.node = self.id3(df, attribute_list, weights, None, heuristic, 0)
         return self.node
         # self.level_order_print_tree(self.node)
         # self.print_decision_tree()
@@ -241,32 +244,43 @@ class DecisionTree:
     # for each row, traverse the tree and find the attribute name and find the corresponding value of the attribute in
     # in the row, and find the child node matching tha value and find the next_node.
     # Find the next attribute until you find the label for it.
-    def predict_labels(self, df, tree_node, train=True):
+
+    def predict_labels(self, df, tree_node, prediction_array):
         for i in range(len(df)):
-            col_size = len(df.columns) - 1
-            if train:
-                last_index = col_size - 3
-            else:
-                last_index = col_size - 2
-            row = [df.iloc[i, j] for j in range(last_index)]
-            # print("row size", len(row))
-            # print(row)
-            # row = [df.iloc[i, 0], df.iloc[i, 1], df.iloc[i, 2], df.iloc[i, 3], df.iloc[i, 4], df.iloc[i, 5]]
-            # print(df.iloc[i, col_size])
-            # print(row)
-            pred_val = self.predict_label_for_row(row, tree_node)
-            df.iloc[i, col_size -1] = pred_val
-            if pred_val == "yes":
-                df.iloc[i, col_size] += 1
-            else:
-                df.iloc[i, col_size] -= 1
+            col_size = len(df.columns)
+            row = [df.iloc[i, j] for j in range(col_size)]
+            prediction_array.append(self.predict_label_for_row(row, tree_node))
+            # np.append(prediction_array, self.predict_label_for_row(row, tree_node))
 
-            if df.iloc[i, col_size - 1] not in self.labels_val:
-                print("after", df.iloc[i, col_size])
+        return df, prediction_array
 
-        # print("predicted df: ")
-        # print(df)
-        return df
+
+    # def predict_labels(self, df, tree_node, train=True):
+    #     for i in range(len(df)):
+    #         col_size = len(df.columns) - 1
+    #         if train:
+    #             last_index = col_size - 3
+    #         else:
+    #             last_index = col_size - 2
+    #         row = [df.iloc[i, j] for j in range(last_index)]
+    #         # print("row size", len(row))
+    #         # print(row)
+    #         # row = [df.iloc[i, 0], df.iloc[i, 1], df.iloc[i, 2], df.iloc[i, 3], df.iloc[i, 4], df.iloc[i, 5]]
+    #         # print(df.iloc[i, col_size])
+    #         # print(row)
+    #         pred_val = self.predict_label_for_row(row, tree_node)
+    #         df.iloc[i, col_size -1] = pred_val
+    #         if pred_val == "yes":
+    #             df.iloc[i, col_size] += 1
+    #         else:
+    #             df.iloc[i, col_size] -= 1
+    #
+    #         if df.iloc[i, col_size - 1] not in self.labels_val:
+    #             print("after", df.iloc[i, col_size])
+    #
+    #     # print("predicted df: ")
+    #     # print(df)
+    #     return df
 
     # def get_training_data_with_weight(self, training_filename, dataset, isunknown):
     #     data_df = dt.read_training_data(training_filename, dataset, isunknown)

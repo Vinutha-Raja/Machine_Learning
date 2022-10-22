@@ -180,28 +180,35 @@ class DecisionTree:
 
     def id3_random_forest(self, df, attribute_list, node=None, heuristic_name='entropy', depth=0, feature_size=2):
         if not node:
+            # print("new tree")
             node = TreeNode()
 
         # if all the rows have same label. Return a node with that label
         unique_labels = df['label'].unique()
         if len(unique_labels) == 1:
+            # print("unique labels")
             node.value = unique_labels[0]
             return node
 
         if not attribute_list:
+            # print("no attribute")
             node.value = df['label'].value_counts().idxmax()
             return node
 
         self.depth = depth
         # print("Depth: ", self.depth)
+        # print("self.max_depth: ", self.max_depth)
         if self.depth == self.max_depth:
             # max depth has been reached so assign the majority value
+            # print("max depth")
             node.value = df['label'].value_counts().idxmax()
             return node
         # print("attribute_list", attribute_list)
         # choose few attributes randomly before splitting
-        attribute_list = random.sample(attribute_list, feature_size)
-        best_split_attribute = self.get_best_split_attribute(df, attribute_list, heuristic_name)
+        small_attribute_list = random.sample(attribute_list, feature_size)
+        # print(small_attribute_list)
+        # print(attribute_list)
+        best_split_attribute = self.get_best_split_attribute(df, small_attribute_list, heuristic_name)
         # print("best_split_attribute: ", best_split_attribute)
         node.value = best_split_attribute
         node.child_nodes = []
@@ -221,7 +228,8 @@ class DecisionTree:
                 new_attr_list = attribute_list.copy()
                 new_attr_list.remove(best_split_attribute)
                 # attribute_list.remove(best_split_attribute)
-                child.next_node = self.id3(new_df, new_attr_list, child.next_node, heuristic_name, depth=depth + 1)
+                # print("calling recursively")
+                child.next_node = self.id3_random_forest(new_df, new_attr_list, child.next_node, heuristic_name, depth=depth + 1)
         return node
 
     def print_decision_tree(self):
@@ -285,12 +293,15 @@ class DecisionTree:
     def constuct_decision_tree(self, df, heuristic):
         attribute_list = list(self.attribute_map.keys())
         self.node = self.id3(df, attribute_list, self.node, heuristic)
+        return self.node
         # self.level_order_print_tree(self.node)
         # self.print_decision_tree()
 
     def constuct_random_decision_tree(self, df, heuristic, feature_size):
         attribute_list = list(self.attribute_map.keys())
-        self.node = self.id3_random_forest(df, attribute_list, self.node, heuristic, feature_size)
+        # print("random tree")
+        self.node = self.id3_random_forest(df, attribute_list, None, heuristic, feature_size)
+        return self.node
 
 
     def convert_numeric_to_binary_attributes(self, df):
@@ -374,7 +385,7 @@ class DecisionTree:
     # for each row, traverse the tree and find the attribute name and find the corresponding value of the attribute in
     # in the row, and find the child node matching tha value and find the next_node.
     # Find the next attribute until you find the label for it.
-    def predict_labels(self, df):
+    def predict_labels(self, df, tree_node):
         for i in range(len(df)):
             col_size = len(df.columns) - 1
             row = [df.iloc[i, j] for j in range(col_size - 2)]
@@ -383,12 +394,12 @@ class DecisionTree:
             # row = [df.iloc[i, 0], df.iloc[i, 1], df.iloc[i, 2], df.iloc[i, 3], df.iloc[i, 4], df.iloc[i, 5]]
             # print(df.iloc[i, col_size])
             # colsize - count value
-            predicted_val = self.predict_label_for_row(row, self.node)
+            predicted_val = self.predict_label_for_row(row, tree_node)
             # print(predicted_val)
-            if predicted_val == df.iloc[i, col_size - 2]:
-                df.iloc[i, col_size] += 1
-            else:
-                df.iloc[i, col_size] -= 1
+            # if predicted_val == df.iloc[i, col_size - 2]:
+            #     df.iloc[i, col_size] += 1
+            # else:
+            #     df.iloc[i, col_size] -= 1
             df.iloc[i, col_size - 1] = predicted_val
             # if df.iloc[i, col_size - 1] not in self.labels_val:
             #     print("after", df.iloc[i, col_size - 1])
@@ -397,34 +408,24 @@ class DecisionTree:
         # print(df)
         return df
 
-    def predict_labels_by_iter(self, df, first_iter_pred, last_iter_pred, first_iter=False, last_iter=False):
+    def predict_labels_by_iter(self, df, tree_node, first_iter_pred, last_iter_pred, first_iter=False, iter_num=0):
+        # print("before", first_iter_pred, iter_num)
         for i in range(len(df)):
             col_size = len(df.columns) - 1
-            row = [df.iloc[i, j] for j in range(col_size - 3)]
-            predicted_val = self.predict_label_for_row(row, self.node)
-            # print(predicted_val)
-            if predicted_val == df.iloc[i, col_size - 3]:
-                if first_iter:
-                    first_iter_pred.append(1)
-                    df.iloc[i, col_size - 1] += 1
-                df.iloc[i, col_size] += 1
-                if last_iter:
-                    last_iter_pred.append(1)
+            row = [df.iloc[i, j] for j in range(col_size)]
+            # print(row, len(row))
+            predicted_val = self.predict_label_for_row(row, tree_node)
+            if predicted_val == "yes":
+                predicted_val = 1
             else:
-                if first_iter:
-                    first_iter_pred.append(-1)
-                    df.iloc[i, col_size - 1] -= 1
-                df.iloc[i, col_size] -= 1
-                if last_iter:
-                    last_iter_pred.append(-1)
-            df.iloc[i, col_size - 2] = predicted_val
-
-            # if df.iloc[i, col_size - 1] not in self.labels_val:
-            #     print("after", df.iloc[i, col_size - 1])
-
-        # print("predicted df: ")
-        # print(df)
-        return df
+                predicted_val = -1
+            if first_iter:
+                first_iter_pred[i].append(predicted_val)
+            # print("prev", last_iter_pred[i], i, predicted_val)
+            last_iter_pred[i][iter_num] += predicted_val
+            # print("after", last_iter_pred[i])
+        # print("after", first_iter_pred, iter_num)
+        return df, first_iter_pred, last_iter_pred
 
 
 if __name__ == "__main__":
