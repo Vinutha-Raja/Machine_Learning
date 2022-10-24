@@ -52,14 +52,13 @@ def calculate_bias(iter_pred, labels, num, final_pred=False):
     labels[labels == 'no'] = -1
     # mean_pred = iter_pred.mean(axis=1, dtype=float)
     mean_pred = np.array([row.mean() for row in iter_pred])
-    # print("mean", mean_pred)
+    print(len(mean_pred))
     if final_pred:
         mean_pred = mean_pred - labels
     else:
         mean_pred = mean_pred - labels
-    # print("mean1", mean_pred)
     mean_pred = np.square(mean_pred)
-    # print("bias", mean_pred)
+    print(mean_pred)
     return mean_pred
 
 
@@ -82,7 +81,7 @@ def draw_samples(m, df, drop_cols=False):
     return new_df
 
 
-def bagging_algorithm(T, data_df, test_data_df, first_iter_pred, last_iter_pred, iter_num):
+def random_algorithm(T, data_df, test_data_df, first_iter_pred, last_iter_pred, iter_num, feature_size):
     # end - set all the attribute details as per bank dataset
     # data_df = dt.read_training_data('/Users/vinutha/Documents/FALL2022/ML/Mach
     # ine_Learning/Ensemble_Learning/bank/train.csv', 'bank', "False")
@@ -102,8 +101,8 @@ def bagging_algorithm(T, data_df, test_data_df, first_iter_pred, last_iter_pred,
 
         training_error_count = 0
         testing_error_count = 0
-
-        dt.node = dt.constuct_decision_tree(training_samples, 'entropy')
+        dt.node = dt.constuct_random_decision_tree(training_samples, 'entropy', feature_size)
+        # dt.node = dt.constuct_decision_tree(training_samples, 'entropy')
         # predict values for training dataset
 
         # training_data_size = len(data_df.index)
@@ -151,7 +150,7 @@ def bagging_algorithm(T, data_df, test_data_df, first_iter_pred, last_iter_pred,
     return
 
 
-def repeated_bagging(num_iter):
+def repeated_random(num_iter, feature_size):
     dt.max_depth = 16
     attribute_index_map = {}
     for ii in range(len(dt.bank_attribute_list)):
@@ -185,22 +184,21 @@ def repeated_bagging(num_iter):
     # test_data_df['prediction'] = [0] * len(test_data_df.index)
     # test_data_df['count_1'] = [0] * len(test_data_df.index)
     # test_data_df['count_final'] = [0] * len(test_data_df.index)
-    first_iter_pred = [[] for _ in range(7)]
+    first_iter_pred = [[] for _ in range(5000)]
     print(len(first_iter_pred))
     print(len(first_iter_pred[0]))
-    last_iter_pred = [[] for _ in range(7)]
-    # last_iter_pred = [[0] * num_iter for _ in range(5000)]
+    last_iter_pred = [[0] * num_iter for _ in range(5000)]
     for i in range(num_iter):
         # training_samples = draw_samples_without_replacement(sample_count, data_df)
         training_samples = data_df.sample(frac=0.2, replace=False, random_state=i)
-        bagging_algorithm(50, training_samples, test_data_df, first_iter_pred,
-                                                            last_iter_pred, i)
+        random_algorithm(100, training_samples, test_data_df, first_iter_pred,
+                                                            last_iter_pred, i, feature_size)
     print("first_iter_pred: ", first_iter_pred)
     print("last_iter_pred:", last_iter_pred)
     first_iter_pred = np.array(first_iter_pred)
     last_iter_pred = np.array(last_iter_pred)
-    # last_iter_pred[last_iter_pred >= 0] = 1
-    # last_iter_pred[last_iter_pred < 0] = -1
+    last_iter_pred[last_iter_pred >= 0] = 1
+    last_iter_pred[last_iter_pred < 0] = -1
 
     labels = np.array(test_data_df['label'])
     first_bias = calculate_bias(first_iter_pred, labels, num_iter)
@@ -212,7 +210,7 @@ def repeated_bagging(num_iter):
     print("bagged tree: bias : {}, variance: {}".format(last_bias.mean(), last_variance.mean()))
 
 
-repeated_bagging(30)
+repeated_random(30, 2)
 
 # single tree: bias : 0.37812999999999203, variance: 0.38031000000000004
 # bagged tree: bias : 6036.826008000014, variance: 491.329352

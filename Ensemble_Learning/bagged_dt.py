@@ -408,7 +408,7 @@ class DecisionTree:
         # print(df)
         return df
 
-    def predict_labels_by_iter(self, df, tree_node, first_iter_pred, last_iter_pred, first_iter=False, iter_num=0):
+    def predict_labels_by_iter(self, df, tree_node, first_iter_pred, last_iter_pred, first_iter=False, last_iter=False, iter_num=0):
         # print("before", first_iter_pred, iter_num)
         for i in range(len(df)):
             col_size = len(df.columns) - 1
@@ -421,8 +421,11 @@ class DecisionTree:
                 predicted_val = -1
             if first_iter:
                 first_iter_pred[i].append(predicted_val)
+            if last_iter:
+                last_iter_pred[i].append(predicted_val)
+
             # print("prev", last_iter_pred[i], i, predicted_val)
-            last_iter_pred[i][iter_num] += predicted_val
+
             # print("after", last_iter_pred[i])
         # print("after", first_iter_pred, iter_num)
         return df, first_iter_pred, last_iter_pred
