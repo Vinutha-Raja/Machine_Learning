@@ -191,7 +191,7 @@ def repeated_random(num_iter, feature_size):
     for i in range(num_iter):
         # training_samples = draw_samples_without_replacement(sample_count, data_df)
         training_samples = data_df.sample(frac=0.2, replace=False, random_state=i)
-        random_algorithm(50, training_samples, test_data_df, first_iter_pred,
+        random_algorithm(500, training_samples, test_data_df, first_iter_pred,
                                                             last_iter_pred, i, feature_size)
     print("first_iter_pred: ", first_iter_pred)
     print("last_iter_pred:", last_iter_pred)
@@ -210,11 +210,11 @@ def repeated_random(num_iter, feature_size):
     print("bagged tree: bias : {}, variance: {}".format(last_bias.mean(), last_variance.mean()))
 
 print("feature_size:", 2)
-repeated_random(30, 2)
+repeated_random(100, 2)
 print("feature_size:", 4)
-repeated_random(30, 4)
+repeated_random(100, 4)
 print("feature_size:", 6)
-repeated_random(30, 6)
+repeated_random(100, 6)
 # single tree: bias : 0.37812999999999203, variance: 0.38031000000000004
 # bagged tree: bias : 6036.826008000014, variance: 491.329352
 

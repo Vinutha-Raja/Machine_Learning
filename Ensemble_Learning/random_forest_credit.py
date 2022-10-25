@@ -166,13 +166,13 @@ def bagging_algorithm(T, m, feature_size):
     return train_err_list, test_error_list
 
 
-xpoints = [i for i in range(50)]
+xpoints = [i for i in range(500)]
 
 # for feature_size in [2, 4, 6]:
 #     print("Feature size : ", feature_size)
-train_err_count1, test_err_count1 = bagging_algorithm(50, 2500, 2)
-train_err_count2, test_err_count2 = bagging_algorithm(50, 2500, 4)
-train_err_count3, test_err_count3 = bagging_algorithm(50, 2500, 6)
+train_err_count1, test_err_count1 = bagging_algorithm(500, 2500, 2)
+train_err_count2, test_err_count2 = bagging_algorithm(500, 2500, 4)
+train_err_count3, test_err_count3 = bagging_algorithm(500, 2500, 6)
 
 fig = plt.figure()
 fig.suptitle('Credit Random Forest - feature size 2')

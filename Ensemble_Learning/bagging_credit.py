@@ -165,9 +165,9 @@ def bagging_algorithm(T, m):
     return training_error_list, testing_error_list
 
 
-training_error_list1, testing_error_list1 = bagging_algorithm(50, 2500)
+training_error_list1, testing_error_list1 = bagging_algorithm(500, 2500)
 
-xpoints = [i for i in range(50)]
+xpoints = [i for i in range(500)]
 plt.plot(xpoints, training_error_list1, color='r', label='training error')
 plt.plot(xpoints, testing_error_list1, color='g', label='test error')
 plt.xlabel("Bagging: Iteration")

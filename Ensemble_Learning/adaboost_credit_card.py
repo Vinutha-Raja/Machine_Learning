@@ -193,9 +193,9 @@ def adaboost_algorithm(T):
     return training_error_list, testing_error_list, combined_training_error_list, combined_testing_error_list
 
 
-training_error_list, testing_error_list, combined_training_error_list, combined_testing_error_list = adaboost_algorithm(50)
+training_error_list, testing_error_list, combined_training_error_list, combined_testing_error_list = adaboost_algorithm(500)
 
-xpoints = [i for i in range(50)]
+xpoints = [i for i in range(500)]
 plt.plot(xpoints, training_error_list, color='r', label='training error')
 plt.plot(xpoints, testing_error_list, color='g', label='test error')
 plt.xlabel("Iteration")
