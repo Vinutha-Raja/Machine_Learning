@@ -276,7 +276,7 @@ class DecisionTree:
                 # Dequeue an item from queue and print it
                 p = q[0]
                 q.pop(0)
-                if isinstance(p, str):
+                if not isinstance(p, TreeNode):
                     print(p)
                 else:
                     print(p.value, end=' ')
@@ -293,6 +293,7 @@ class DecisionTree:
     def constuct_decision_tree(self, df, heuristic):
         attribute_list = list(self.attribute_map.keys())
         self.node = self.id3(df, attribute_list, self.node, heuristic)
+        # self.level_order_print_tree(self.node)
         return self.node
         # self.level_order_print_tree(self.node)
         # self.print_decision_tree()
@@ -374,7 +375,7 @@ class DecisionTree:
         children = node.child_nodes
         for child in children:
             if child.value == attribute_val:
-                if isinstance(child.next_node, str):
+                if not isinstance(child.next_node, TreeNode):
                     return child.next_node
                 else:
                     # print(child.next_node.value)
@@ -386,6 +387,7 @@ class DecisionTree:
     # in the row, and find the child node matching tha value and find the next_node.
     # Find the next attribute until you find the label for it.
     def predict_labels(self, df, tree_node):
+        # self.level_order_print_tree(tree_node)
         for i in range(len(df)):
             col_size = len(df.columns) - 1
             row = [df.iloc[i, j] for j in range(col_size - 2)]
@@ -421,9 +423,9 @@ class DecisionTree:
                 predicted_val = -1
             if first_iter:
                 first_iter_pred[i].append(predicted_val)
-            if last_iter:
-                last_iter_pred[i].append(predicted_val)
-
+            # if last_iter:
+            #     last_iter_pred[i].append(predicted_val)
+            last_iter_pred[i][iter_num] += predicted_val
             # print("prev", last_iter_pred[i], i, predicted_val)
 
             # print("after", last_iter_pred[i])

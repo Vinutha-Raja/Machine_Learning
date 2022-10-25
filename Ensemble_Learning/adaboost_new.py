@@ -80,7 +80,7 @@ def adaboost_algorithm(T):
     # print(data_df)
     alpha_t = 0
     for i in range(1, T+1):
-        # print(data_df)
+        print(data_df)
         epsilon_t = 0
 
         dt.node = dt.constuct_decision_tree(data_df, 'entropy', weights)

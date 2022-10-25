@@ -88,6 +88,18 @@ class DecisionTree:
 
         return entropy
 
+    def get_max_weighted_value_credit(self, df, weights):
+        # print("here")
+        val_yes = weights[df['label'] == 1].sum()
+        val_no = weights[df['label'] == 0].sum()
+        # print(val_yes, val_no, val_yes + val_no)
+        # print(val_no)
+        # print(val_yes + val_no)
+        if val_yes >= val_no:
+            return 1
+        else:
+            return 0
+
     def get_max_weighted_value(self, df, weights):
         val_yes = weights[df['label'] == 'yes'].sum()
         val_no = weights[df['label'] == 'no'].sum()
@@ -99,7 +111,64 @@ class DecisionTree:
         else:
             return "no"
 
+    def id3_credit(self, df, attribute_list, weights, node=None, heuristic_name='entropy', depth=0):
+        # print(attribute_list)
+        if not node:
+            # print("new_tree")
+            node = TreeNode()
+
+        # if all the rows have same label. Return a node with that label
+        unique_labels = df['label'].unique()
+        if len(unique_labels) == 1:
+            node.value = unique_labels[0]
+            return node
+
+        if not attribute_list:
+            node.value = self.get_max_weighted_value_credit(df, weights)
+            return node
+
+        self.depth = depth
+        # print("Depth: ", self.depth)
+        if self.depth == self.max_depth:
+            # max depth has been reached so assign the majority value
+            node.value = self.get_max_weighted_value_credit(df, weights)
+            return node
+        # print("attribute_list", attribute_list)
+        # print(len(df.index), len(weights))
+        best_split_attribute = self.get_best_split_attribute(df, attribute_list, heuristic_name, weights)
+        # print("best_split_attribute: ", best_split_attribute)
+        node.value = best_split_attribute
+        node.child_nodes = []
+
+        attribute_values = self.attribute_map.get(best_split_attribute)
+        # print(attribute_values)
+        for attribute in attribute_values:
+            # print(attribute)
+            child = TreeNode()
+            child.value = attribute
+            node.child_nodes.append(child)
+            indices = df.index[df[best_split_attribute] == attribute].tolist()
+            # print(indices)
+            # print("indices", indices)
+            # print("weights", weights)
+            new_weights = np.take(weights, indices)
+            # print("new_weights", new_weights)
+            new_df = df[df[best_split_attribute] == attribute]
+            # print(len(new_df.index), len(new_weights))
+
+            if new_df.size == 0:
+                child.next_node = self.get_max_weighted_value_credit(df, weights)
+            else:
+                # if best_split_attribute in attribute_list:
+                new_attr_list = attribute_list.copy()
+                new_attr_list.remove(best_split_attribute)
+                # attribute_list.remove(best_split_attribute)
+                child.next_node = self.id3_credit(new_df, new_attr_list, new_weights, child.next_node, heuristic_name,
+                                           depth=depth + 1)
+        return node
+
     def id3(self, df, attribute_list, weights, node=None, heuristic_name='entropy', depth=0):
+        # print(attribute_list)
         if not node:
             # print("new_tree")
             node = TreeNode()
@@ -123,7 +192,7 @@ class DecisionTree:
         # print("attribute_list", attribute_list)
         # print(len(df.index), len(weights))
         best_split_attribute = self.get_best_split_attribute(df, attribute_list, heuristic_name, weights)
-        # print("best_split_attribute: ", best_split_attribute)
+        print("best_split_attribute: ", best_split_attribute)
         node.value = best_split_attribute
         node.child_nodes = []
 
@@ -135,6 +204,7 @@ class DecisionTree:
             child.value = attribute
             node.child_nodes.append(child)
             indices = df.index[df[best_split_attribute] == attribute].tolist()
+            # print(indices)
             # print("indices", indices)
             # print("weights", weights)
             new_weights = np.take(weights, indices)
@@ -159,9 +229,47 @@ class DecisionTree:
         attribute_list = list(self.attribute_map.keys())
         # print(attribute_list)
         self.node = self.id3(df, attribute_list, weights, None, heuristic, 0)
+        # self.level_order_print_tree(self.node)
         return self.node
         # self.level_order_print_tree(self.node)
         # self.print_decision_tree()
+
+    def level_order_print_tree(self, root):
+        if not root:
+            return
+        q = []
+        q.append(root)
+        while len(q) != 0:
+
+            n = len(q)
+
+            # If this node has children
+            while n > 0:
+                # Dequeue an item from queue and print it
+                p = q[0]
+                q.pop(0)
+                if isinstance(p, str):
+                    print(p)
+                else:
+                    print(p.value, end=' ')
+
+                    if p.child_nodes:
+                        for i in range(len(p.child_nodes)):
+                            q.append(p.child_nodes[i])
+                    else:
+                        if p.next_node:
+                            q.append(p.next_node)
+                n = n - 1
+            print()
+
+    def constuct_decision_tree_credit(self, df, heuristic, weights):
+        # print("here")
+        # print(df)
+        attribute_list = list(self.attribute_map.keys())
+        # print(attribute_list)
+        self.node = self.id3_credit(df, attribute_list, weights, None, heuristic, 0)
+        # self.level_order_print_tree(self.node)
+        return self.node
 
     def convert_numeric_to_binary_attributes(self, df):
         attributes_to_convert = ["age", "balance", "day", "duration", "campaign", "pdays", "previous"]
@@ -248,12 +356,24 @@ class DecisionTree:
     def predict_labels(self, df, tree_node, prediction_array):
         for i in range(len(df)):
             col_size = len(df.columns)
+            # print(col_size)
             row = [df.iloc[i, j] for j in range(col_size)]
+            # print(row)
             prediction_array.append(self.predict_label_for_row(row, tree_node))
             # np.append(prediction_array, self.predict_label_for_row(row, tree_node))
 
         return df, prediction_array
 
+    def predict_labels_credit(self, df, tree_node, prediction_array):
+        for i in range(len(df)):
+            col_size = len(df.columns)
+            # print(col_size)
+            row = [df.iloc[i, j] for j in range(col_size - 1)]
+            # print(len(row))
+            prediction_array.append(self.predict_label_for_row(row, tree_node))
+            # np.append(prediction_array, self.predict_label_for_row(row, tree_node))
+
+        return df, prediction_array
 
     # def predict_labels(self, df, tree_node, train=True):
     #     for i in range(len(df)):

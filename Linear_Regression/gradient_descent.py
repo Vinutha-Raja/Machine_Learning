@@ -121,3 +121,4 @@ Y = np.array([row[-1] for row in training_data])
 weight_vector = np.dot(np.linalg.inv(np.dot(X, np.transpose(X))), np.dot(X, Y))
 
 print("Optimal weight vector: {}".format(weight_vector))
+

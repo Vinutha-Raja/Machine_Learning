@@ -175,32 +175,32 @@ def repeated_bagging(num_iter):
                          "previous", "poutcome", "label"]
 
     data_df = dt.read_training_data(
-        '/Users/vinutha/Documents/FALL2022/ML/Machine_Learning/Ensemble_Learning/bank/train.csv', 'bank', "False")
+        './bank/train.csv', 'bank', "False")
     # print(data_df)
     # data_df['prediction'] = [0] * len(data_df.index)
     # data_df['count_1'] = [0] * len(data_df.index)
     # data_df['count_final'] = [0] * len(data_df.index)
     test_data_df = dt.read_training_data(
-        '/Users/vinutha/Documents/FALL2022/ML/Machine_Learning/Ensemble_Learning/bank/test.csv', 'bank', "False")
+        './bank/test.csv', 'bank', "False")
     # test_data_df['prediction'] = [0] * len(test_data_df.index)
     # test_data_df['count_1'] = [0] * len(test_data_df.index)
     # test_data_df['count_final'] = [0] * len(test_data_df.index)
-    first_iter_pred = [[] for _ in range(7)]
-    print(len(first_iter_pred))
-    print(len(first_iter_pred[0]))
-    last_iter_pred = [[] for _ in range(7)]
-    # last_iter_pred = [[0] * num_iter for _ in range(5000)]
+    first_iter_pred = [[] for _ in range(5000)]
+    # print(len(first_iter_pred))
+    # print(len(first_iter_pred[0]))
+    # last_iter_pred = [[] for _ in range(5000)]
+    last_iter_pred = [[0] * num_iter for _ in range(5000)]
     for i in range(num_iter):
         # training_samples = draw_samples_without_replacement(sample_count, data_df)
         training_samples = data_df.sample(frac=0.2, replace=False, random_state=i)
-        bagging_algorithm(50, training_samples, test_data_df, first_iter_pred,
+        bagging_algorithm(500, training_samples, test_data_df, first_iter_pred,
                                                             last_iter_pred, i)
     print("first_iter_pred: ", first_iter_pred)
     print("last_iter_pred:", last_iter_pred)
     first_iter_pred = np.array(first_iter_pred)
     last_iter_pred = np.array(last_iter_pred)
-    # last_iter_pred[last_iter_pred >= 0] = 1
-    # last_iter_pred[last_iter_pred < 0] = -1
+    last_iter_pred[last_iter_pred >= 0] = 1
+    last_iter_pred[last_iter_pred < 0] = -1
 
     labels = np.array(test_data_df['label'])
     first_bias = calculate_bias(first_iter_pred, labels, num_iter)
@@ -212,8 +212,10 @@ def repeated_bagging(num_iter):
     print("bagged tree: bias : {}, variance: {}".format(last_bias.mean(), last_variance.mean()))
 
 
-repeated_bagging(30)
+repeated_bagging(100)
 
 # single tree: bias : 0.37812999999999203, variance: 0.38031000000000004
 # bagged tree: bias : 6036.826008000014, variance: 491.329352
 
+# single tree: bias : 0.3505502222222279, variance: 0.3425964444444444
+# bagged tree: bias : 0.37465155555555973, variance: 0.12532177777777778
