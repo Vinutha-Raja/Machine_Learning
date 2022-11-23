@@ -66,7 +66,6 @@ for g in gamma_val:
     train_y1 = np.reshape(train_y, (-1, 1))
     train_err_count = np.sum(prediction_Array != train_y1)
 
-    # err_tr = np.sum(np.abs(y - np.reshape(train_y, (-1, 1)))) / 2 / train_y.shape[0]
     test_prediction = gaussian_prediction_func(g, sol, train_data, test_data, train_y)
     test_prediction[test_prediction > 0] = 1
     test_prediction[test_prediction <= 0] = -1
